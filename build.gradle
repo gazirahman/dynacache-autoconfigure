@@ -1,0 +1,95 @@
+apply plugin: 'java'
+apply plugin: 'maven-publish' 
+
+sourceCompatibility = 1.8
+
+ext.springRepo = 'http://repo.spring.io/libs-release'
+repositories {
+    mavenCentral()
+    maven {
+        url "https://plugins.gradle.org/m2/"
+    }
+    maven { url springRepo }
+	maven {	
+		url 'https://halprdartifact01.hq.halw.com:8443/artifactory/pcl-release-local' 
+		credentials {
+			username "$artifactory_user"
+			password "$artifactory_password"
+		}     
+	}     
+}
+
+version = "1.0";//getVersion()
+    
+    
+dependencies {
+	compile 'com.ibm.websphere.appserver:dynacache:8.5.5'
+	
+	compile 'org.apache.logging.log4j:log4j-core:2.8.2'
+
+	compile ("org.springframework.boot:spring-boot-starter:$SPRING_BOOT_VERSION") {
+	    // Websphere gives error - LoggerFactory is not a Logback LoggerContext but Logback is on the classpath
+	    exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'        
+    } 
+
+	compile 'commons-io:commons-io:2.4'
+	//compile 'commons-digester:commons-digester:2.1'
+	compile 'org.apache.commons:commons-lang3:3.0'
+}
+
+archivesBaseName = 'dynacache'
+group = 'com.pcl'
+jar {
+	println "Creating from " + archivesBaseName + " jar..."
+	from sourceSets.main.output,sourceSets.main.allSource
+	manifest {
+		attributes 'Implementation-Title': 'Core Module',
+				   'Implementation-Version': version
+	}
+}	
+
+def getVersion() {
+	def gitVersion = "Unknown_Branch"
+
+	if(!System.properties['user.home'].contains("Users")) {
+	    def proc = "git rev-parse --abbrev-ref HEAD".execute()
+	    proc.in.eachLine { line -> gitVersion = line }
+	    proc.err.eachLine { line -> println line }   
+	    proc.waitFor()	
+
+	   	def refs = gitVersion.split("/")
+    	gitVersion = refs[refs.length-1].trim() 	
+    } 
+    if(gitVersion.contains("Unknown")) {
+ 	    def gitFolder = "$projectDir/.git/"
+	    def takeFromHash = 12
+	    def head = new File(gitFolder + "HEAD").text.split(":") // .git/HEAD
+	    def isCommit = head.length == 1 // e5a7c79edabbf7dd39888442df081b1c9d8e88fd
+	    def isRef = head.length > 1     // ref: refs/heads/release/2.1-SNAPSHOT
+
+	    if(isCommit) // e5a7c79edabb
+	    	gitVersion = head[0].trim().take(takeFromHash) 
+	    if(isRef) {
+	    	def refs = head[1].split("/");
+	    	gitVersion = refs[refs.length-1].trim() 
+	    }
+	}
+	return gitVersion
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId archivesBaseName
+        }
+    }
+}
