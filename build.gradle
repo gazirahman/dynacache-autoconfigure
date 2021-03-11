@@ -6,6 +6,7 @@ sourceCompatibility = 1.8
 ext.springRepo = 'http://repo.spring.io/libs-release'
 repositories {
     mavenCentral()
+    mavenLocal()
     maven {
         url "https://plugins.gradle.org/m2/"
     }
@@ -23,7 +24,8 @@ version = "1.0";//getVersion()
     
     
 dependencies {
-	compile 'com.ibm.websphere.appserver:dynacache:8.5.5'
+	//compile 'com.ibm.websphere.appserver:dynacache:8.5.5'
+	compile 'com.ibm.websphere.appserver:was_public:9.0.0'
 	
 	compile 'org.apache.logging.log4j:log4j-core:2.8.2'
 
